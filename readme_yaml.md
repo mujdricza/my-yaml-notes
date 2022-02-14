@@ -8,6 +8,7 @@ Used information
   * https://www.tutorialspoint.com/yaml/index.htm
     * (for me, the explanations there were often not clear enough :( )
   * YAML parser (usable as format validator): http://www.yamllint.com/
+  * YAML to JSON converter: https://onlineyamltools.com/convert-yaml-to-json
 * information to some details
   * https://stackoverflow.com/questions/50788277/why-3-dashes-hyphen-in-yaml-file
   * https://yaml-multiline.info/
@@ -15,7 +16,7 @@ Used information
 
 # General features
 
-* YAML = "YAML Ain’t markup language"
+* YAML = "Yet Another Markup Language", "YAML Ain’t markup language"
 * Current version: 1.2 (2009)  - https://yaml.org/spec/1.2/
   * Revision 1.2.2 (Oct. 2021)
 * data serialization language
@@ -166,6 +167,29 @@ Example
   "specific\u2028trimmed\n\n\nas space"
   ```
 
+# Character streams
+
+* character stream types
+  * **directives**
+  * **document boundary markers**
+  * **documents**
+  * **complete streams**
+
+## Directives
+
+* basic instructions used in YAML processor
+  * types:
+    * **reserved directives**
+      * initialized with 3 hyphen characters
+      * will be converted into specific value of JSON
+      * e.g.
+      ```yaml
+      %YAML 1.1
+      --- !!str
+      "foo"
+      ```
+  * **YAML directive**
+    * 
 # Structure: Block-style vs. flow-style
 
 ## Structure via indentation
