@@ -3,7 +3,7 @@ TODO:
 * make script examples
 * verify todos, open questions
 
-# Notes on YAML
+# Notes on this documentation
 
 Used information
 * general documentation
@@ -12,15 +12,17 @@ Used information
     * (for me, the explanations there were often not clear enough :( )
   * YAML parser (usable as format validator): http://www.yamllint.com/
   * YAML to JSON converter: https://onlineyamltools.com/convert-yaml-to-json
+  * https://en.wikipedia.org/wiki/YAML
 * information to some details
   * https://stackoverflow.com/questions/50788277/why-3-dashes-hyphen-in-yaml-file
   * https://yaml-multiline.info/
 * Documentation of PyYAML: https://pyyaml.org/wiki/PyYAMLDocumentation
-* There is a correspondence between YAML streams and JSON files, where YAML streams can be represented as JSON content.
 
 # General features
 
-* YAML = "Yet Another Markup Language", "YAML Ain’t markup language"
+* YAML = "YAML Ain’t markup language" (originally: "Yet Another Markup Language")
+* There is a correspondence between YAML streams and JSON files, where YAML streams can be represented as JSON content.
+* First release: 2004 by Clark Evans
 * Current version: 1.2 (2009)  - https://yaml.org/spec/1.2/
   * Revision 1.2.2 (Oct. 2021)
 * data serialization language
@@ -109,7 +111,8 @@ Example
 * A YAML schema is a combination of set of tags
 * YAML schema -> JSON type:
   * scalar types:
-    * null value: `!!null` -> `null`
+    * null value: `!!null` -> `null`; 
+      * see https://yaml.org/type/null.html: valid Null-values in YAML1.1: `~`, `null`, `Null`, `NULL`, `` (empty)
       * can be set as value (as key, it will be represented as string)
       * full example
       ```yaml
@@ -124,6 +127,11 @@ Example
       }
       ```
       * boolean value: `!!bool` -> `true` / `false`
+        * see https://yaml.org/type/bool.html: valid boolean values in YAML1.1: `y|Y|yes|Yes|YES|n|N|no|No|NO
+|true|True|TRUE|false|False|FALSE`
+|on|On|ON|off|Off|OFF
+        * NOTE that there are differences in YAML1.1 and YAML1.2 in interpreting boolean values:
+          * `g: Yes` -- a boolean `True`  in YAML1.1, but a string `"Yes"` in YAML1.2
         * full example
         ```yaml
         YAML is a superset of JSON: !!bool true
@@ -177,10 +185,19 @@ Example
            ]
         }
         ```
+      
     * integer: `!!int`
     * float: `!!float`
     * string: `!!str`
     * binary: `!!binary` (bytes)
+      * e.g. 
+      ```yaml
+      picture: !!binary |
+        R0lGODdhDQAIAIAAAAAAANn
+        Z2SwAAAAADQAIAAACF4SDGQ
+        ar3xxbJ9p0qa7R0YxwzaFME
+        1IAADs= 
+      ```
     * value: `!!value` (default value of a mapping)
     * yaml: `!!yaml` (keys for encoding YAML)
     * further: merge: `!!merge`, timestamp: `!!timestamp`, 
@@ -190,6 +207,9 @@ Example
     * dictionary: `!!map` (unordered), `!!omap` (odered)
     * pair: `!!pairs` (map allowing duplicated keys)  
   * NOTE that any pickleable object can be serialized using the `!!python/object` tag (see https://pyyaml.org/wiki/PyYAMLDocumentation)
+    * Many implementations of YAML can support user-defined data types for object serialization. Local data types use a single exclamation mark `!`. 
+      * e.g. `myObject: !myClass { name: Joe, age: 15 }`
+    * Note that the ability to construct an arbitrary Python object may be dangerous if you receive a YAML document from an untrusted source such as the Internet. The function `yaml.safe_load` limits this ability to simple Python objects like integers or lists.
 
 ### Failsafe schema
 
@@ -296,7 +316,9 @@ Example
       "foo"
       ```
     * **YAML directive**
-      *  ?? with "%" ? 
+      * YAML documents in a stream may be preceded by 'directives' composed of a percent sign (`%`) followed by a name and space-delimited parameters. Two directives are defined in YAML 1.1:
+        * The `%YAML` directive is used for identifying the version of YAML in a given document. 
+        * The `%TAG` directive is used as a shortcut for URI prefixes. These shortcuts may then be used in node type tags.
       * default directives
       * "If converted in JSON, the value fetched includes forward slash character in preceding and terminating characters."
       * e.g.
@@ -305,6 +327,7 @@ Example
         ---
         !!str "foo"
         ```
+      * TODO: e.g. for %TAG
 
 ## Document boundary markers
 
@@ -1183,6 +1206,8 @@ tags:
     * `pip install ruamel.yaml`
     * https://yaml.readthedocs.io/en/latest/basicuse.html
 
+
+
 ## PyYAML examples
 
 ```python
@@ -1209,6 +1234,20 @@ yaml.load("""
   -> Python: `{(0, 1): 'Treasure', (1, 0): 'Treasure', (0, 0): 'The Hero', (1, 1): 'The Dragon'}`
 
 
+# Similar serialization formats
+
+* JSON
+  * YAML and JSON formats are considered to be highly compatible. 
+  * YAML has many additional features lacking in JSON, including comments, extensible data types, relational anchors, strings without quotation marks, and mapping types preserving key order.
+* TOML
+  * TOML was designed for configuration files.
+* XML
+  * YAML has no notion of tag attributes as available in XML.
+
 # Further tools
 
 * browser-based comparison of two yaml files: https://yamldiff.com/
+
+# Further notes
+
+* Since there is not always an explicit terminator signal of a structure, double-check the validity of the content.
