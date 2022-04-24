@@ -1,0 +1,42 @@
+## EXAMPLE CONFIGURATION FILE for the local DC(S) training, testing
+
+## PATH to the local-domain-classifier repository
+## used if default files are accessed, e.g. entity-values.json, or classifier-config.json
+local_domain_classifier_path: "/path/of/the/local-domain-classifier"
+# e.g.:
+#local_domain_classifier_path: "/Users/amiq/PycharmProjects/Telecom/local-domain-classifier/"
+
+
+## PATH to the experiment folder
+experiment_path: "/path/to/the/experiment/folder"
+# e.g.:
+#experiment_path: "/Users/amiq/experiments/20210125_SWITCH/example_experiment"
+
+## PATH to the embeddings folder if any needed
+embeddings_path: &EMBEDDINGS_PATH "/path/to/the/embeddings/folder"
+# e.g.:
+#embeddings_path: "/Users/amiq/embeddings"
+
+
+## CLASSIFIER NAME to use  - see module names in domain_classifier.classifiers
+## as well as in additional_domain_classifiers.classifiers
+# currently used:
+classifier_module_name: "logistic_regression_tfidf_use_entityfeat_number"
+
+
+## CLASSIFIER CONFIGURATION (see magenta-nlu-query/data; or https://smarthub-wbench.workbench.telekom.de/gitlab/smarthub_ml/magenta-nlu-query/-/blob/master/data/classifier-config.json)
+## used for the automatic scaling
+# classifier_config_fn: "${experiment_path}/classifier-config_example.json"
+classifier_config_fn: "${local_domain_classifier_path}/magenta-nlu-query/data/classifier-config.json"
+
+
+## FURTHER OPTIONS for the classifier if any
+## e.g. for classifiers using FastText embeddings loading from custom file
+## NOTE that if one of the values are changed, all the expressed variables have
+##      to be given (due to shallow update of the config with new info)
+universal_sentence_encoder_embeddings:
+    model_source: "${embeddings_path}/universal-sentence-encoder-multilingual_3/"
+fasttext_embeddings:
+    model_filename: "${embeddings_path}/FastText/wiki.de.bin"
+    vec_normalization: null
+    pool_mode: "mean"

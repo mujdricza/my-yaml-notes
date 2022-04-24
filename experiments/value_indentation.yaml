@@ -1,0 +1,6 @@
+# the value has to be indented by at least one space more than the key is
+plain:
+ This unquoted scalar
+ spans many lines.
+quoted: "So does this
+   quoted scalar.\n"

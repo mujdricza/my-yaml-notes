@@ -1,4 +1,7 @@
-Itt tartok: https://www.tutorialspoint.com/yaml/yaml_character_streams.htm
+TODO:
+* sort information
+* make script examples
+* verify todos, open questions
 
 # Notes on YAML
 
@@ -12,7 +15,8 @@ Used information
 * information to some details
   * https://stackoverflow.com/questions/50788277/why-3-dashes-hyphen-in-yaml-file
   * https://yaml-multiline.info/
-
+* Documentation of PyYAML: https://pyyaml.org/wiki/PyYAMLDocumentation
+* There is a correspondence between YAML streams and JSON files, where YAML streams can be represented as JSON content.
 
 # General features
 
@@ -40,6 +44,11 @@ Used information
     * "mapping": an associative array (dict) structure
     * "collection": unnamed mappings 
       * TODO ???
+* "character streams": a sequence of bytes which will be processed, thus a character stream is a unit for processing
+  * directives
+  * document boundary markers
+  * documents
+  * complete stream
 
 ## Indicator characters
 
@@ -91,6 +100,104 @@ Example
 }
 !!str "text" 
 ```
+
+## JSON schema
+
+* see https://yaml.org/type/index.html
+* Since the YAML streams are considered to be parsed to JSON objects, it is a failsafe indication of values in YAML which helps to identify JSON object types.
+* NOTE that all the values can be represented also without the failsafe indicators.
+* A YAML schema is a combination of set of tags
+* YAML schema -> JSON type:
+  * scalar types:
+    * null value: `!!null` -> `null`
+      * can be set as value (as key, it will be represented as string)
+      * full example
+      ```yaml
+      !!null null: value for null string key
+      key with null value: !!null null
+      ```
+      -> JSON: 
+      ```json
+      {
+         "null": "value for null string key", 
+         "key with null value": null
+      }
+      ```
+      * boolean value: `!!bool` -> `true` / `false`
+        * full example
+        ```yaml
+        YAML is a superset of JSON: !!bool true
+        Pluto is a planet: !!bool false
+        ```
+        -> JSON 
+        ```json
+        {
+           "YAML is a superset of JSON": true, 
+           "Pluto is a planet": false
+        }
+        ```
+        * TODO: if omitting "!!bool"? -- also then `true` and `True` as values will be converted to `null` in JSON ?
+        * e.g.
+        ```yaml
+        A null: null
+        Booleans: [ true, false ]
+        Integers: [ 0, -0, 3, -19 ]
+        Floats: [ 0., -0.0, 12e03, -2E+05 ]
+        Invalid: [ True, Null, 0o7, 0x3A, +12.3 ]
+        ```
+        --> JSON
+        ```json
+        {
+           "Integers": [
+              0, 
+              0, 
+              3, 
+              -19
+           ], 
+         
+           "Booleans": [
+              true, 
+              false
+           ], 
+           "A null": null, 
+      
+           "Invalid": [
+                 true, 
+                 null, 
+                 "0o7", 
+                 58, 
+                 12.300000000000001
+           ], 
+         
+           "Floats": [
+              0.0, 
+              -0.0, 
+              "12e03", 
+              "-2E+05"
+           ]
+        }
+        ```
+    * integer: `!!int`
+    * float: `!!float`
+    * string: `!!str`
+    * binary: `!!binary` (bytes)
+    * value: `!!value` (default value of a mapping)
+    * yaml: `!!yaml` (keys for encoding YAML)
+    * further: merge: `!!merge`, timestamp: `!!timestamp`, 
+  * collection types:
+    * list: `!!seq`
+    * set: `!!set`
+    * dictionary: `!!map` (unordered), `!!omap` (odered)
+    * pair: `!!pairs` (map allowing duplicated keys)  
+  * NOTE that any pickleable object can be serialized using the `!!python/object` tag (see https://pyyaml.org/wiki/PyYAMLDocumentation)
+
+### Failsafe schema
+
+* can be used with any YAML document
+* two types:
+  * **generic mapping**
+  * **generic sequence**
+* TODO: How do they differ from normal mappings and sequences?
 
 ## Production parameters
 
@@ -188,8 +295,70 @@ Example
       --- !!str
       "foo"
       ```
-  * **YAML directive**
-    * 
+    * **YAML directive**
+      *  ?? with "%" ? 
+      * default directives
+      * "If converted in JSON, the value fetched includes forward slash character in preceding and terminating characters."
+      * e.g.
+      ```yaml
+        %YAML 1.1
+        ---
+        !!str "foo"
+        ```
+
+## Document boundary markers
+
+* A line beginning with 3 dashes `---` is used to start a new document.
+* to allow more than one document in one stream.
+* e.g.
+  ```yaml
+  %YAML 1.1
+  ---
+  !!str "foo"
+  %YAML 1.1
+  ---
+  !!str "bar"
+  %YAML 1.1
+  ---
+  !!str "baz"
+  ```
+
+## Documents
+
+* one YAML document is representing a single root node 
+* non-content parts of a document
+  * directives
+  * comments
+  * indentation and style elements
+* two types:
+  * **explicit documents**
+  * **implicit documents**
+
+### Explicit Documents
+
+* explicit documents begin with `---` and (optionally) end with `...`
+* e.g.
+  ```yaml
+  ---
+  some: yaml
+  ...
+  ```
+
+### Implicit Documents
+
+* no document begin marker
+* only one document in a stream possible
+
+## Complete Streams
+
+* character stream: sequence of bytes
+* e.g.
+  ```yaml
+  %YAML 1.1
+  ---
+  !!str "Text content\n"
+  ```
+
 # Structure: Block-style vs. flow-style
 
 ## Structure via indentation
@@ -228,7 +397,7 @@ Example
       * There is no way to escape characters inside literal scalars.
     
     * **folded style**: indicated by the right angle bracket symbol `>`
-      * newlines are replaces by spaces
+      * newlines are replaced by spaces
       * to get a newline, leave a blank line within lines
       * lines with additional indentation are not folded
       * spaces due to indentation are removed
@@ -244,7 +413,7 @@ Example
   * **Block Chomping indicator**: there are different interpretations of the newline characters at the beginning and end of a scalar block. Block chomping will be indicated after the block style indicator.
     * **clip**: default behaviour, it puts a single newline at the end of the string
       * without any indicator: `|` or `>`
-    * **strip**: it removes all newlines at the beginning and end
+    * **strip**: it removes all line breaks and empty lines at the beginning and end
       * `|-` or `>-`
     * **keep**: it keeps all newlines at the beginning and end
       * `|+` or `>+`
@@ -258,6 +427,7 @@ Example
   * **block mapping** entries can be written in a compact in-line style, or in a block notation 
     * If the `?` indicator is specified, the optional value node must be specified on a separate line, denoted by the `:` indicator.
   * **nodes**: embedded blocks inside block collections
+
 ## Flow-style
 * The flow-style YAML uses further delimiters for showing the scope begins and ends.
   * e.g.: 
@@ -265,14 +435,59 @@ Example
   dev_test:
     environment: { name: dev }
     extends: [ .env_vars, .test ]
-  ``` 
+  ```
   * json-isque syntax
-* Flow block contents must be indented with must be at least one space more thant the current block level.
+* Flow block contents must be **indented** with must be at least one space more thant the current block level.
 * Flow content span multiple lines.
   * TODO ???
 * It begins with `{` or `[`
   * e.g. `[PHP, Perl, Python]`
 * Flow scalars have more limited escaping support.
+* Flow style can be represented with failsafe properties (`!!str`, `!!seq`, `!!map` for different structure elements); The only flow style that does not have any property is the plain scalar.
+  * e.g. full example:
+  ```yaml
+  %YAML 1.2
+  ---
+  !!seq [
+  !!seq [ !!str "a", !!str "b" ],
+  !!map { ? !!str "a" : !!str "b" },
+  !!str "a",
+  !!str "b",
+  !!str "c",]
+  ```
+  * --> JSON:
+  ```json
+  [
+     [
+        "a", 
+        "b"
+     ], 
+     
+     {
+        "a": "b"
+     }, 
+     
+     "a", 
+     "b", 
+     "c"
+  ]
+  ```
+* Nodes with empty content are considered as empty nodes.
+  * e.g.
+  ```yaml
+  !!map {
+    ? !!str "foo" : !!str "",
+    ? !!str "" : !!str "bar",
+  }
+  ```
+  --> JSON output: 
+  ```json
+  {
+    "": "bar", 
+    "foo": ""
+  }
+  ```
+* See also section "Scalars"
 
 # Documents and streams
 
@@ -296,6 +511,7 @@ Example
     doc2
     ```
   * A document can have "directives".
+  * The content of a document is compiled and represented under a single root node.
 
 # Directives: Tags and anchors
 
@@ -324,20 +540,103 @@ Example
 # Nodes
 
 * YAML supports 3 kinds of nodes:
-  * scalars:
+  * **scalars**:
     * include unicode characters
-  * sequences: one type of collections
+  * **sequences**: one type of collections
     * ordered series of zero or more nodes
-  * mappings: the other type of collections
+    * the items can be repeated
+  * **mappings**: the other type of collections
     * key-value-pairs
     * the keys have to be uniq
-* 
+* Nodes can include anchors and tags.
+  * **anchor**: a node for later reference of contents
+    * indicator for **referencing**: leading ampersand `&`: `&MYANCHOR`
+    * indicator for **dereferencing**: leading asterisk `*`: `*MYANCHOR`
+      * the content of the anchor will be inserted into the JSON representation
+    * the anchor name is case-insensitive -- TODO check
+    * e.g. full example:
+    ```yaml
+    %YAML 1.1
+    ---
+    !!map {
+       ? &A1 !!str "foo"  <-- A1 is the anchor name
+       : !!str "bar",
+       ? !!str &A2 "baz"
+       : *a1              <-- using the anchor value accessed via the anchor name
+    }
+    ``` 
+    * example with block style
+    ```yaml
+    port: &ports
+      adapter:  postgres
+      host:     localhost
+    development:
+      database: myapp_development
+      <<: *ports
+    ```
+    --> JSON:
+    ```json
+    {
+       "port": {
+          "adapter": "postgres",
+          "host": "localhost"
+       },
+       "development": {
+          "database": "myapp_development",
+          "adapter": "postgres",
+          "host": "localhost"
+       }
+    }
+  ```
+    * NOTE that only whole nodes can be referenced and dereferenced, but not parts of nodes!
+  * **tag**: "The tag property represents the type of native data structure which defines a node completely."  - ???
+    * indicator: leading exclamation mark: "!"
+    * Tags are part of the representation graph.
+    * e.g. full example
+    ```yaml
+    %YAML 1.1
+    ---
+    !!map {
+       ? !<tag:yaml.org,2002:str> "foo"
+       : !<!bar> "baz"
+    }
+    ```
+    * TODO: what is the tag above in the example? TODO: embedded tags? What is the benefit of tags? How will they be converted into json? 
 
 * Nodes are labelled with one or two exclamation mark(s) `!`, `!!`; the node is a string which can be expanded into an URI/URL.
   * TODO ???
-* "Repeated nodes in each file are initially denoted by an ampersand (&) and by an asterisk (*) mark later."
-  * TODO ???
+  * e.g. `!!map { ...}` is a dictionary node
+  * e.g. full example (with anchors and tags):
+  ```yaml
+  %YAML 1.1
+  ---
+  !!map {
+     ? &A1 !!str "foo"
+     : !!str "bar",
+     ? !!str &A2 "baz"
+     : *a1
+  }
+  ```
+* "Repeated nodes in each file can be marked by an anchor (&ANCHORNAME) and dereferenced by an asterisk (*ANCHORNAME) mark later."
+  * see `&A1` and `*a1` in the example above
   
+* empty nodes: node with empty content, e.g. `""`
+  * e.g. full example
+  ```yaml
+  %YAML 1.2
+  ---
+  !!map {
+     ? !!str "foo" : !!str "",
+     ? !!str "" : !!str "bar",
+  }
+  ```
+  * -> JSON:
+  ```json
+  {
+  "": "bar",
+  "foo": ""
+  }
+  ```
 
 
 # Block 
@@ -385,7 +684,7 @@ comments: >
 
 # Scalars
 
-* two types: (see under Block styles)
+* two types for block scalars: (see under Block styles)
   * literal scalars: indicated with `|`
   * folded scalars: indicated with `>`
 
@@ -432,7 +731,18 @@ comments: >
     ```
     * Plain flow scalars are picky about the `:` and `#` characters. They can be in the string, but `:` cannot appear before a space or newline, and `#` cannot appear after a space or newline; doing this will cause a syntax error. If you need to use these characters you are probably better off using one of the quoted styles instead.
 
-# Anchors (variables, alias node)
+* With explicit marking: e.g. `!!str "my string value"`
+* e.g. 
+  ```yaml
+  %YAML 1.1
+  ---
+  !!str "as space \
+  trimmed\n\
+  specific\L\n\
+  none"
+  ```
+  * --> json: "as space trimmed\nspecific\u2028\nnone"
+# Anchors (variables, alias nodes)
 
 * Use anchors/variables for avoiding duplicated contents.
 * Define an anchor with `&NAME`
@@ -479,13 +789,22 @@ If the YAML is converted to JSON format, you see the automatically resolved vari
 * String values are separated using double-quoted string
 * Quotation can be dropped.
   * TODO in which cases?
-* 
+* Explicit marker as property: `!!str`
+* Line breaks can be given explicitely like `\n`, multiple line breaks will be simplified to one as default.
+  * e.g. 
+ ```yaml
+  !!str "as space \
+  trimmed\n\
+  specific\L\n\
+  none"
+  ```
+  -> json: `"as space trimmed\nspecific\u2028\nnone"`
 
 # Collection
 
 * Two kind of collections: 
-  * sequences 
-  * mappings
+  * **sequences**: ordered sequence of items
+  * **mappings**: unordered sequence of key-value pairs
 * Collections are marked with a leading hyphen `-`
 * A collection can contain all types of nodes (scalars, sequences, mappings)
 * A collection has no name (aka 'key')
@@ -500,13 +819,32 @@ If the YAML is converted to JSON format, you see the automatically resolved vari
   hr: 63
   avg: 0.288
   ```
+* Flow collection entries are terminated with comma (,) indicator
+  * e.g. full example:
+  ```yaml
+  %YAML 1.2
+  ---
+  !!seq [
+     !!seq [
+        !!str "one",
+        !!str "two",
+     ],
+     !!seq [
+        !!str "three",
+        !!str "four",
+     ],
+  ]
+  ```
+  * -> JSON: `[["one", "two"], ["three", "four"]]`
 
 # Sequence (List)
 
+* ordered list of items
 * List members are 
   * denoted by a leading hyphen `-`
   * or enclosed in square brackets, and separated by commas (and spaces)
 * items: scalar values
+* with explicit marker `!!seq [ ... ]`
 
 ```yaml
 --- # Favorite movies
@@ -521,29 +859,177 @@ If the YAML is converted to JSON format, you see the automatically resolved vari
 ```
 
 ```yaml
-men: [John Smith, Bill Jones]
+men names: [John Smith, Bill Jones]  <-- the value is a sequence
 ```
 
+* sequence in a block: with leading hyphen and following space `- `
 ```yaml
 women:
-  - Mary Smith
+  - Mary Smith   <-- the value is a sequence
   - Susan Williams
 ```
 
+```yaml
+%YAML 1.1
+---
+!!seq [
+   !!str "milk",
+   !!str "bread",
+   !!map {
+      ? !!str "white"
+      : !!str "black"
+   }
+]
+```
+
+* Nested sequence:
+  * e.g. in block notation full example
+  ```yaml
+  -
+    - HTML
+    - LaTeX
+    - SGML
+    - VRML
+    - XML
+    - YAML
+  -
+    - BSD
+    - GNU Hurd
+    - Linux
+  ```
+  -> JSON: `[['HTML', 'LaTeX', 'SGML', 'VRML', 'XML', 'YAML'], ['BSD', 'GNU Hurd', 'Linux']]`
+  * It’s not necessary to start a nested sequence with a new line:
+  ```yaml
+  - 1.1
+  - - 2.1
+    - 2.2
+  - - - 3.1
+      - 3.2
+      - 3.3
+  ```
+  -> JSON: `[1.1, [2.1, 2.2], [[3.1, 3.2, 3.3]]]`
+
+* Sequence of mappings:
+  * e.g.
+  ```yaml
+  - 
+     name: Mark Joseph
+     hr: 87
+     avg: 0.278
+  - 
+     name: James Stephen
+     hr: 63
+     avg: 0.288
+  ```
+  
 # Mapping (Dict, Associative array)
 
+* unordered collection of key-value pairs
+* keys are uniq within a mapping node
 * key and value are separated by a colon: `KEY: VALUE`
-* the dict is enclosed in curly brackets: `{KEY1: VALUE1, KEY2: VALUE2}`
-
+* the dict can be enclosed in curly brackets: `{KEY1: VALUE1, KEY2: VALUE2}`, or indicated by indention
+* explicitely set node structure: `!!map {...}` with key after a `?` and value after `:`
+* NOTE that both key and value can contain multiple words
+  * TODO check
 
 ```yaml
-- {name: John Smith, age: 33}
+- {full name: John Smith, age: 33}
 ```
 
 ```yaml
-- name: Mary Smith
+- full name: Mary Smith
   age: 27
 ```
+
+* a more complex example
+```yaml
+%YAML 1.1
+paper:
+   uuid: 8a8cbf60-e067-11e3-8b68-0800200c9a66
+   name: On formally undecidable propositions of  Principia Mathematica and related systems I.
+   author: Kurt Gödel.
+tags:
+   - tag:
+      uuid: 98fb0d90-e067-11e3-8b68-0800200c9a66
+      name: Mathematics
+   - tag:
+      uuid: 3f25f680-e068-11e3-8b68-0800200c9a66
+      name: Logic
+```
+-> JSON:
+```json
+{
+   "paper": {
+      "author": "Kurt Gödel."
+      "name": "On formally undecidable propositions of Principia Mathematica and related systems I.",
+      "uuid": "8a8cbf60-e067-11e3-8b68-0800200c9a66",
+   },
+   "tags": [
+      {
+         "tag": {
+            "uuid": "98fb0d90-e067-11e3-8b68-0800200c9a66",
+            "name": "Mathematics"
+         }
+      },
+      {
+         "tag": {
+            "uuid": "3f25f680-e068-11e3-8b68-0800200c9a66",
+            "name": "Logic"
+         }
+      }
+   ]
+}
+```
+
+* Mapping of sequences:
+  * e.g.
+  ```yaml
+  - 2001-07-23
+  ? [ New York Yankees,Atlanta Braves ]  # key
+  : [ 2001-07-02, 2001-08-12, 2001-08-14]  # value
+  ```
+
+
+* With node presentations
+```yaml
+
+%YAML 1.1
+---
+!!map {
+   ? !!str "simple key"
+   : !!map {
+      ? !!str "also simple"
+      : !!str "value",
+      ? !!str "another a simple key"
+      : !!seq [
+        !!str "seq1",
+        !!str "seq2"
+     ]  
+   }
+}
+```
+```json
+{
+   "simple key": {
+      "another simple key": ["seq1", "seq2"], 
+      "also simple": "value"
+   }
+}
+```
+
+* NOTE the difference between a sequence and another mapping within a mapping node:
+  * sequence within a mapping node
+  ```yaml
+  port: 
+    - postgres adapter
+    - localhost as host
+  ```
+  * another mapping within a mapping node
+  ```yaml
+  port: 
+    adapter:  postgres
+    host:     localhost
+  ```
 
 ## Complex mapping
 
@@ -590,6 +1076,8 @@ women:
 # Comment
 
 * There is only single line comments, beginning with `#`.
+* If there is content before a comment within the line, you have to use a space before the hasthag: ` # comment`
+  * e.g. `- C#    # Note that comments are denoted with ' #' (space then #).` - Here, `C#` is the content of the sequence item.
 * Comments are separated from other tokens by whitespace(s).
 * e.g.
   ```yaml
@@ -605,14 +1093,64 @@ women:
   ```
 * Comments must not appear inside scalars. 
   * YAML does not include any way to escape the hash symbol (`#`) so within multi-line string there is no way to divide the comment from the raw string value.
+* Commented blocks are skipped during execution.
+
+# Apostrophs and string content
+
+* Scalar string content is just written without any indicator, or within quotes.
+  * ??? can it be only double quotes, or also single ones?
+* If quoting within a string is needed, use different quotes like
+  * full example:
+  ```yaml
+  - The Dagger 'Narthanc'
+  - The Dagger 'Nimthanc'
+  - The Dagger 'Dethanc'
+  ```
+  --> JSON: `["The Dagger 'Narthanc'", "The Dagger 'Nimthanc'", "The Dagger 'Dethanc'"]`
 
 # Processing YAML streams
 
+* see the process in [pictures/yaml_processes.jpg] (from https://www.tutorialspoint.com/yaml/images/yaml_processes.jpg)
+
+* "character streams": 
+  * **directives**: basic instructions used in YAML processor
+    * e.g. comments
+    * types:
+      * reserved directive: after 3 hyphens
+        * e.g. `--- !!str` -- the following block will be converted into a string in JSON
+        * full example: 
+        ```yaml
+          %YAML 1.1
+          --- !!str
+          "foo"
+        ```
+      * YAML directive: default directive
+      * e.g. full example:
+      ```yaml
+      %YAML 1.1
+      ---
+      !!str "foo" 
+      ```
+      "If converted in JSON, the value fetched includes forward slash character in preceding and terminating characters." -- ???
+  * **document boundary markers** allow to have more than one document within one stream
+    * line starting with 3 hyphens `---` starts a new document
+    * note that the document start marker can be/is preceded by directive lines. E.g.
+      ```yaml
+      %YAML 1.1
+      %TAG !foo! !foo-types/
+      ---
+      !!str "Text content\n"
+      ```
+  * **documents**: a single native data structure with one single root node
+    * explicit: starting with document start marker `---` (and optionally ending with the document end marker `...`)
+    * implicit: no document boundary markers are present
+  * **complete stream** 
 * The processing of YAML information includes three stages:
   * Representation
   * Serialization
   * Presentation and Parsing.
 * **Representation**:
+  * the YAML structure will be converted into the "representation node graph" 
   * 3 kinds of nodes: scalar, sequence, mapping
   * **scalar**: strings, integers, dates, atomic data types
   * **sequence**: ordered number of entries
@@ -620,7 +1158,7 @@ women:
   * Note that YAML also includes nodes which specify the data type structure.
     * TODO ???
 * **Serialization**:
-  * Result: YAML serialization tree
+  * The Represenation Node Graph will be converted to a YAML serialization tree: stream of bytes.
 * **Presentation**:
   * The final output of YAML serialization: events -> characters.
   * It represents a character stream in a human friendly manner.
@@ -628,7 +1166,7 @@ women:
   * Inverse process of presentation: characters -> events.
   * This process needs a well-formed input - otherwise, the parsing procedure will fail.
   * YAML Lint: online parser for YAML
-    * http://www.yamllint.com/
+    * [http://www.yamllint.com/]
 
 
 # YAML with Python
@@ -648,7 +1186,7 @@ women:
 ## PyYAML examples
 
 ```python
-yaml.load(Quick brown fox)  # -> string
+yaml.load("Quick brown fox", Loader=yaml.Loader)  # -> string
 yaml.load("3.14")           # -> float
 yaml.load("""
     - eggs
@@ -656,6 +1194,20 @@ yaml.load("""
     - ...
     """)                    # -> list of strings
 ```
+* for specific Python objects, you can use the indicator `!!python/...`, e.g. `!!python/tuple`
+  * e.g. full example
+  ```yaml
+  ? !!python/tuple [0,0]
+  : The Hero
+  ? !!python/tuple [0,1]
+  : Treasure
+  ? !!python/tuple [1,0]
+  : Treasure
+  ? !!python/tuple [1,1]
+  : The Dragon
+  ```
+  -> Python: `{(0, 1): 'Treasure', (1, 0): 'Treasure', (0, 0): 'The Hero', (1, 1): 'The Dragon'}`
+
 
 # Further tools
 
